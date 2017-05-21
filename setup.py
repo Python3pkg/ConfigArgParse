@@ -14,12 +14,12 @@ def launch_http_server(directory):
 
     try:
         try:
-            from SimpleHTTPServer import SimpleHTTPRequestHandler
+            from http.server import SimpleHTTPRequestHandler
         except ImportError:
             from http.server import SimpleHTTPRequestHandler
 
         try:
-            import SocketServer
+            import socketserver
         except ImportError:
             import socketserver as SocketServer
 
@@ -34,11 +34,11 @@ def launch_http_server(directory):
                 logging.debug("Can't use port %d: %s" % (port, e.strerror))
                 continue
 
-            print("HTML coverage report now available at http://%s%s" % (
-                socket.gethostname(), (":%s" % port) if port != 80 else ""))
+            print(("HTML coverage report now available at http://%s%s" % (
+                socket.gethostname(), (":%s" % port) if port != 80 else "")))
 
             os.chdir(directory)
-            SocketServer.TCPServer(("", port),
+            socketserver.TCPServer(("", port),
                 SimpleHTTPRequestHandler).serve_forever()
         else:
             logging.debug("All network port. ")

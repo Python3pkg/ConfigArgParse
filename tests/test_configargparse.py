@@ -15,7 +15,7 @@ else:
 if sys.version_info >= (3, 0):
     from io import StringIO
 else:
-    from StringIO import StringIO
+    from io import StringIO
 
 # enable logging to simplify debugging
 logger = logging.getLogger()

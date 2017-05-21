@@ -4,11 +4,12 @@ import os
 import re
 import sys
 import types
+import collections
 
 if sys.version_info >= (3, 0):
     from io import StringIO
 else:
-    from StringIO import StringIO
+    from io import StringIO
 
 if sys.version_info < (2, 7):
     from ordereddict import OrderedDict
@@ -183,7 +184,7 @@ class DefaultConfigFileParser(ConfigFileParser):
         converting them back to a string representing config file contents.
         """
         r = StringIO()
-        for key, value in items.items():
+        for key, value in list(items.items()):
             if isinstance(value, list):
                 # handle special case of lists
                 value = "["+", ".join(map(str, value))+"]"
@@ -228,7 +229,7 @@ class YAMLConfigFileParser(ConfigFileParser):
                 getattr(stream, 'name', 'stream'),  type(parsed_obj).__name__))
 
         result = OrderedDict()
-        for key, value in parsed_obj.items():
+        for key, value in list(parsed_obj.items()):
             if isinstance(value, list):
                 result[key] = value
             else:
@@ -355,7 +356,7 @@ class ArgumentParser(argparse.ArgumentParser):
         self._auto_env_var_prefix = auto_env_var_prefix
 
         # extract kwargs that can be passed to the super constructor
-        kwargs_for_super = dict((k, v) for k, v in locals().items() if k in [
+        kwargs_for_super = dict((k, v) for k, v in list(locals().items()) if k in [
             "prog", "usage", "description", "epilog", "version", "parents",
             "formatter_class", "prefix_chars", "fromfile_prefix_chars",
             "argument_default", "conflict_handler", "add_help"])
@@ -507,7 +508,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
             # add each config item to the commandline unless it's there already
             config_args = []
-            for key, value in config_items.items():
+            for key, value in list(config_items.items()):
                 if key in known_config_keys:
                     action = known_config_keys[key]
                     discard_this_key = already_on_command_line(
@@ -610,7 +611,7 @@ class ArgumentParser(argparse.ArgumentParser):
             or lists
         """
         config_file_items = OrderedDict()
-        for source, settings in source_to_settings.items():
+        for source, settings in list(source_to_settings.items()):
             if source == _COMMAND_LINE_SOURCE_KEY:
                 _, existing_command_line_args = settings['']
                 for action in self._actions:
@@ -622,24 +623,24 @@ class ArgumentParser(argparse.ArgumentParser):
                         if value is not None:
                             if isinstance(value, bool):
                                 value = str(value).lower()
-                            elif callable(action.type):
+                            elif isinstance(action.type, collections.Callable):
                                 found = [i for i in range(0, len(existing_command_line_args)-1) if existing_command_line_args[i] in config_file_keys]
                                 if found:
                                     value = existing_command_line_args[found[-1] + 1]
                             config_file_items[config_file_keys[0]] = value
 
             elif source == _ENV_VAR_SOURCE_KEY:
-                for key, (action, value) in settings.items():
+                for key, (action, value) in list(settings.items()):
                     config_file_keys = self.get_possible_config_keys(action)
                     if config_file_keys:
                         value = getattr(parsed_namespace, action.dest, None)
                         if value is not None:
                             config_file_items[config_file_keys[0]] = value
             elif source.startswith(_CONFIG_FILE_SOURCE_KEY):
-                for key, (action, value) in settings.items():
+                for key, (action, value) in list(settings.items()):
                     config_file_items[key] = value
             elif source == _DEFAULTS_SOURCE_KEY:
-                for key, (action, value) in settings.items():
+                for key, (action, value) in list(settings.items()):
                     config_file_keys = self.get_possible_config_keys(action)
                     if config_file_keys:
                         value = getattr(parsed_namespace, action.dest, None)
@@ -725,7 +726,7 @@ class ArgumentParser(argparse.ArgumentParser):
             command_line_args: List of all args (already split on spaces)
         """
         # open any default config files
-        config_files = [open(f) for files in map(glob.glob, map(os.path.expanduser, self._default_config_files))
+        config_files = [open(f) for files in map(glob.glob, list(map(os.path.expanduser, self._default_config_files)))
                         for f in files]
 
         # list actions with is_config_file_arg=True. Its possible there is more
@@ -782,11 +783,11 @@ class ArgumentParser(argparse.ArgumentParser):
         }
 
         r = StringIO()
-        for source, settings in self._source_to_settings.items():
+        for source, settings in list(self._source_to_settings.items()):
             source = source.split("|")
             source = source_key_to_display_value_map[source[0]] % tuple(source[1:])
             r.write(source)
-            for key, (action, value) in settings.items():
+            for key, (action, value) in list(settings.items()):
                 if key:
                     r.write("  %-19s%s\n" % (key+":", value))
                 else:
@@ -828,7 +829,7 @@ class ArgumentParser(argparse.ArgumentParser):
                     config_arg_string = "specified via " + config_arg_string
                 if default_config_files or config_arg_string:
                     msg += " (%s)." % " or ".join(tuple(default_config_files) +
-                                                  tuple(filter(None, [config_arg_string])))
+                                                  tuple([_f for _f in [config_arg_string] if _f]))
                 msg += " " + self._config_file_parser.get_syntax_description()
 
         if self._add_env_var_help:
